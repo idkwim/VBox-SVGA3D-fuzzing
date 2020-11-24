@@ -1,0 +1,4 @@
+worker/worker
+*.o
+*.pyc
+__pycache__
