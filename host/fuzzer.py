@@ -4,6 +4,8 @@ import socket
 import subprocess
 import random
 
+from grammar import GrammarManager
+
 import config
 
 if __name__ == "__main__":
@@ -29,6 +31,7 @@ if __name__ == "__main__":
 
         # generate file (cur.pkts)
         # TODO: implement generation of data
+        
 
         cur_data = b""
         with open("cur.pkts", "rb") as f:

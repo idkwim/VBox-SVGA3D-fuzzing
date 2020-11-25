@@ -10,4 +10,5 @@ PKT_SIZE = 100 # packet size
 # PKT_TYPE = "rnd"
 
 # debug info
+INDENT_SPACE = 2 # num of spaces per indent
 DEBUG=True

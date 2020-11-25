@@ -21,12 +21,12 @@ int main(int argc, char **argv)
   }
   
   // svga setup
-	if (conf_svga_device() != 0)
-		errx(EXIT_FAILURE, "[!] Error initializing SVGA device");
+  if (conf_svga_device() != 0)
+    errx(EXIT_FAILURE, "[!] Error initializing SVGA device");
 
-	SVGA_WriteReg(SVGA_REG_WIDTH, 0x320);
-	SVGA_WriteReg(SVGA_REG_HEIGHT, 0x258);
-	SVGA_WriteReg(SVGA_REG_BITS_PER_PIXEL, 32);
+  SVGA_WriteReg(SVGA_REG_WIDTH, 0x320);
+  SVGA_WriteReg(SVGA_REG_HEIGHT, 0x258);
+  SVGA_WriteReg(SVGA_REG_BITS_PER_PIXEL, 32);
 
   // fuzz iteration setup
   int sockfd = -1;
@@ -63,7 +63,7 @@ int main(int argc, char **argv)
 
     run_data((uint32_t*)buf);
   }
-	return 0;
+  return 0;
 }
 
 void run_data(uint32_t* data) {
@@ -72,7 +72,7 @@ void run_data(uint32_t* data) {
     uint32_t cmdnr = data[idx++];
     uint32_t hdrsize = data[idx++];
 
-	  SVGA_WriteReg(SVGA_REG_CONFIG_DONE, false);
+    SVGA_WriteReg(SVGA_REG_CONFIG_DONE, false);
 
     VMwareWriteWordToFIFO(cmdnr);
     VMwareWriteWordToFIFO(hdrsize);
