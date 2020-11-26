@@ -4,7 +4,7 @@ import socket
 import subprocess
 import random
 
-from grammar import GrammarManager
+from generator import Generator
 
 import config
 
