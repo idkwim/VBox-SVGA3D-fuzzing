@@ -31,6 +31,8 @@ def print_ctypes_obj(obj, level=0):
   else:
     print('{}VALUE = {} (type={})'.format(indent, obj, type(obj)))
 
+
+# mini tests
 import svga3d_reg
 
 if __name__ == "__main__":

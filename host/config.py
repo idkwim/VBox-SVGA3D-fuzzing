@@ -7,7 +7,7 @@ FUZZ_PORT = 31337
 
 # gen info
 PKT_SIZE = 100 # packet size
-# PKT_TYPE = "rnd"
+BOUNDARY_PROB = 5 # boundary value probability (max=100)
 
 # debug info
 INDENT_SPACE = 2 # num of spaces per indent
