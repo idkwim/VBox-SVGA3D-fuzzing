@@ -9,20 +9,51 @@ import svga_reg
 import svga3d_reg
 
 import config
+import printer
 
 def choose_random(rand1, rand2):
   return random.choices([rand1, rand2], weights=(config.BOUNDARY_PROB, 100-config.BOUNDARY_PROB))[0]
 
+def random_float():
+  rand1 = random.choice([float('inf'), float('-inf'), 0.0])
+  rand2 = struct.unpack('!f', struct.pack('!I', random.getrandbits(32)))[0]
+  return choose_random(rand1, rand2)
+
+def random_double():
+  rand1 = random.choice([float('inf'), float('-inf'), 0.0])
+  rand2 = struct.unpack('!d', struct.pack('!I', random.getrandbits(64)))[0]
+  return choose_random(rand1, rand2)
+
+def random_bool():
+  return random.choice([True, False])
+
+def random_int(numbits):
+  rand1 = random.choice([0, (1 << numbits) - 1])
+  rand2 = random.getrandbits(numbits)
+  return choose_random(rand1, rand2)
+
 # Given a reference object, generate randomized object based on that
 def rand_ctypes_obj_rec(prefix, obj):
-  # Assess wether the object is an array, a structure or an elementary type
-  if issubclass(type(obj), ctypes.Array):
+  if issubclass(type(obj), ctypes.Array): # array type
     args = []
     for obj2 in obj:
-      args.append(rand_ctypes_obj_rec(prefix, obj2))
-    return (type(args[0])*len(args))(*args)
+      elem = rand_ctypes_obj_rec(prefix, obj2)
+      if elem == None:
+        break
+      args.append(elem)
+    if len(args) != 0:
+      return (type(args[0])*len(args))(*args)
+    else: # primitive types
+      typename = type(next(iter(obj), None)).__name__
+      if typename == "float": # TODO: double
+        return type(obj)(*[random_float() for i in range(len(obj))])
+      elif typename == "int": # TODO: adapt this routine with custom numbits
+        return type(obj)(*[random_int(32) for i in range(len(obj))])
+      else:
+        print("Exception occured: Invalid primitive type array : " + typename)
+        raise ValueError
 
-  elif hasattr(obj, '_fields_'):
+  elif hasattr(obj, '_fields_'): # obj type
     args = []
     for idx, fdesc in enumerate(obj._fields_):
       # Get the next field descriptor
@@ -36,28 +67,20 @@ def rand_ctypes_obj_rec(prefix, obj):
       obj2 = getattr(obj, fname)
       res = rand_ctypes_obj_rec(prefix, obj2)
       if res == None:
-        # resolve enum name
-        enum_name = varlist[idx].split(", ")[1].replace("),", "")+"__enumvalues"
-        
         # random
         if "float" in ftype.__name__:
-          rand1 = random.choice([float('inf'), float('-inf'), 0.0])
-          rand2 = struct.unpack('!f', struct.pack('!I', random.getrandbits(fbitlen)))[0]
-          res = choose_random(rand1, rand2)
+          res = random_float()
         elif "double" in ftype.__name__:
-          rand1 = random.choice([float('inf'), float('-inf'), 0.0])
-          rand2 = struct.unpack('!d', struct.pack('!I', random.getrandbits(fbitlen)))[0]
-          res = choose_random(rand1, rand2)
+          res = random_double()
         elif "bool" in ftype.__name__:
-          res = random.choice([True, False])
+          res = random_bool()
         elif "c_int" == ftype.__name__: # enum types may exist
           try:
+            enum_name = varlist[idx].split(", ")[1].replace("),", "")+"__enumvalues"
             enum_dict = eval(prefix+"."+enum_name)
             if False in [bin(x).count("1") == 1 for x in enum_dict.keys()]:
-              print(enum_name, enum_dict.keys())
               rand1 = random.getrandbits(fbitlen)
               rand2 = random.choice(list(enum_dict.keys()))
-              print(rand2)
               res = choose_random(rand1, rand2)
             else:
               maxbits = len(bin(max(enum_dict.keys()))) - 2 # -2 to remove "0b"
@@ -65,13 +88,9 @@ def rand_ctypes_obj_rec(prefix, obj):
               rand2 = random.getrandbits(maxbits)
               res = choose_random(rand1, rand2)
           except: # enum type doesn't exist
-            rand1 = random.choice([0, (1 << fbitlen) - 1]) # negative values are generated with overflow
-            rand2 = random.getrandbits(fbitlen)
-            res = choose_random(rand1, rand2)
+            res = random_int(fbitlen)
         else:
-          rand1 = random.choice([0, (1 << fbitlen) - 1])
-          rand2 = random.getrandbits(fbitlen)
-          res = choose_random(rand1, rand2)
+          res = random_int(fbitlen)
       args.append(res)
     return eval(prefix+"."+obj.__class__.__name__+"(*args)") # TODO: improve this
 
@@ -101,7 +120,7 @@ def pack_cmd(cmd, pay):
 # May change due to versions of targets
 def gen_cmd(testcmd=0):
   # random command id
-  rand1 = random.getrandbits(32)
+  rand1 = random_int(32)
   rand2 = random.randint(1040, 1040+41) # commands are defined in this range (3D)
   cmd = choose_random(rand1, rand2) if testcmd == 0 else testcmd
 
@@ -191,7 +210,7 @@ def gen_cmd(testcmd=0):
     return pack_cmd(cmd, pay)
   elif cmd == 1059: # SVGA_3D_CMD_SHADER_DEFINE
     pCmd = rand_ctypes_obj("SVGA3dCmdDefineShader")
-    cbData = random.randint(0, (1 << 32) - 1)
+    cbData = random_int(32)
     pay = bytes(pCmd)+p32(cbData)
     return pack_cmd(cmd, pay)
   elif cmd == 1060: # SVGA_3D_CMD_SHADER_DESTROY
@@ -203,25 +222,25 @@ def gen_cmd(testcmd=0):
     pay = bytes(pCmd)
     return pack_cmd(cmd, pay)
   elif cmd == 1062: # SVGA_3D_CMD_SET_SHADER_CONST
-    pCmd = rand_ctypes_obj("SVGA3dSetShaderConst")
-    registers = [ctypes.c_uint32(random.randint(0, (1 << 32) - 1)) for i in range(random.randint(0, config.MAX_N_SETSHADERCONST_3D)*4)]
+    pCmd = rand_ctypes_obj("SVGA3dCmdSetShaderConst")
+    registers = [ctypes.c_uint32(random_int(32)) for i in range(random.randint(0, config.MAX_N_SETSHADERCONST_3D)*4)]
     pay = bytes(pCmd)+pack_obj_list(registers)
     return pack_cmd(cmd, pay)
   elif cmd == 1063: # SVGA_3D_CMD_DRAW_PRIMITIVES
     # Easier to manually randomize here
-    cid = ctypes.c_uint32(random.randint(0, (1 << 32) - 1))
-    numVertexDecls = ctypes.c_uint32(random.randint(0, config.MAX_N_DRAWPRIMITIVE_VERTEXDECL_3D))
-    numRanges = ctypes.c_uint32(random.randint(0, config.MAX_N_DRAWPRIMITIVE_NUMRANGE_3D))
+    cid = random_int(32)
+    numVertexDecls = random.randint(0, config.MAX_N_DRAWPRIMITIVE_VERTEXDECL_3D)
+    numRanges = random.randint(0, config.MAX_N_DRAWPRIMITIVE_NUMRANGE_3D)
 
     vertexDecls = [rand_ctypes_obj("SVGA3dVertexDecl") for i in range(numVertexDecls)]
     ranges = [rand_ctypes_obj("SVGA3dPrimitiveRange") for i in range(numRanges)]
-    vertexDivisor = ctypes.c_uint32(random.randint(0, config.MAX_N_DRAWPRIMITIVE_DIVISOR_3D))
+    vertexDivisor = random.randint(0, config.MAX_N_DRAWPRIMITIVE_DIVISOR_3D)
     
     pay = b""
-    pay += bytes(cid)+bytes(numVertexDecls)+bytes(numRanges)
+    pay += p32(cid)+p32(numVertexDecls)+p32(numRanges)
     pay += pack_obj_list(vertexDecls)
     pay += pack_obj_list(ranges)
-    pay += bytes(vertexDivisor)
+    pay += p32(vertexDivisor)
     return pack_cmd(cmd, pay)
   elif cmd == 1064: # SVGA_3D_CMD_SETSCISSORRECT
     pCmd = rand_ctypes_obj("SVGA3dCmdSetScissorRect")
@@ -261,4 +280,3 @@ def gen_cmd(testcmd=0):
   
   return None
 
-print(gen_cmd())
