@@ -54,10 +54,14 @@ if __name__ == "__main__":
             print("Sending file done")
             print("Running file")
 
-          if conn.recv(1024):
+          res = conn.recv(1024)
+          print(res)
+          if res == b"Running data complete":
             if config.DEBUG:
               print("Running file complete")
             continue
+          else:
+            raise
         except KeyboardInterrupt:
           break
         except:
