@@ -1,4 +1,5 @@
 worker/worker
 *.o
 *.pyc
+*.pkts
 __pycache__

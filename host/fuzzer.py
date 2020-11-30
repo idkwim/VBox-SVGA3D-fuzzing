@@ -14,6 +14,7 @@ if __name__ == "__main__":
   
   # start socket
   with socket.socket(socket.AF_INET, socket.SOCK_STREAM) as s:
+    s.setsockopt(socket.SOL_SOCKET, socket.SO_REUSEADDR, 1)
     s.bind(("0.0.0.0", config.FUZZ_PORT))
 
     if config.DEBUG:
@@ -26,31 +27,43 @@ if __name__ == "__main__":
         print('Connected by', addr)
       
       while True:
-        if config.DEBUG:
-          print("running file")
-
         # generate file (cur.pkts)
         # TODO: implement generation of data
-        
 
+        if config.DEBUG:
+          print("Generating file...")
+        
         cur_data = b""
-        # for i in config.PKT_SIZE:
-        #   cur_data += 
+        data_len = 0
+        # don't allow files larger than max file size (including null byte)
+        while data_len >= config.MAX_FILE_SIZE or data_len == 0:
+          for i in range(config.PKT_SIZE):
+            cur_data += generator.gen_cmd()
+          data_len = len(cur_data)
+        
+        if config.DEBUG:
+          print("Generation complete - file length : " + str(data_len))
 
         with open("cur.pkts", "wb") as f:
-          cur_data = f.write(cur_data)
+          f.write(cur_data)
 
         try:
           conn.sendall(cur_data)
 
           if config.DEBUG:
             print("Sending file done")
+            print("Running file")
 
           if conn.recv(1024):
+            if config.DEBUG:
+              print("Running file complete")
             continue
         except KeyboardInterrupt:
           break
         except:
+          if config.DEBUG:
+            print("Crash or error occured... Recording file to crash.pkts")
+          
           with open("crash.pkts", "wb") as f:
             f.write(cur_data)
           break

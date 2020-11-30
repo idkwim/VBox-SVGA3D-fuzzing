@@ -9,7 +9,6 @@ import svga_reg
 import svga3d_reg
 
 import config
-import printer
 
 def choose_random(rand1, rand2):
   return random.choices([rand1, rand2], weights=(config.BOUNDARY_PROB, 100-config.BOUNDARY_PROB))[0]
@@ -278,5 +277,4 @@ def gen_cmd(testcmd=0):
   elif cmd == 1073: # SVGA_3D_CMD_DEACTIVATE_SURFACE
     return pack_cmd(cmd, b"")
   
-  return None
-
+  return b""

@@ -4,6 +4,7 @@
 #include <sys/socket.h>
 #include <netdb.h>
 #include <string.h>
+#include <assert.h>
 
 #include "svga.h"
 #include "svga3d_reg.h"
@@ -45,23 +46,31 @@ int main(int argc, char **argv)
   host_addr.sin_addr = *((struct in_addr*)host->h_addr);
   memset(&(host_addr.sin_zero), 0, 8);
 
+  warnx("[+] Trying to connect %s:%s", argv[1], argv[2]);
+  for(; connect(sockfd, (struct sockaddr*)&host_addr, sizeof(struct sockaddr)) == -1; );
+  warnx("[+] Connection established");
+
   // fuzz iteration
   while(1) {
-    for(; connect(sockfd, (struct sockaddr*)&host_addr, sizeof(struct sockaddr)) == -1; );
-
-    warnx("[+] Connection established");
-
     memset(buf, 0, MAX_DATA_SIZE);
     
-    int numbytes = 0;
+    // int numbytes = 0;
     int bytes_read = -1;
-    while(numbytes < MAX_DATA_SIZE-1 && 
-      (bytes_read=recv(sockfd, buf+numbytes, MAX_DATA_SIZE-numbytes-1, 0)) != -1) {
-      numbytes += bytes_read;
-    }
-    warnx("[+] Received %d bytes", numbytes);
+    // while(numbytes < MAX_DATA_SIZE-1 && 
+    //   (bytes_read=recv(sockfd, buf+numbytes, MAX_DATA_SIZE-numbytes-1, 0)) != -1) {
+    //   numbytes += bytes_read;
+    // }
+    bytes_read=recv(sockfd, buf, MAX_DATA_SIZE-1, 0);
+    if(bytes_read == -1)
+      errx(EXIT_FAILURE, "[!] Recv data failed");
+    // warnx("[+] Received %d bytes", numbytes);
+    warnx("[+] Received %d bytes", bytes_read);
 
+    warnx("[+] Running data");
     run_data((uint32_t*)buf);
+    warnx("[+] Running data complete");
+
+    send(sockfd, "Running data complete", 21, 0);
   }
   return 0;
 }
@@ -71,6 +80,7 @@ void run_data(uint32_t* data) {
   while(idx < MAX_DATA_SIZE / 4) {
     uint32_t cmdnr = data[idx++];
     uint32_t hdrsize = data[idx++];
+    assert(hdrsize % 4 == 0);
 
     SVGA_WriteReg(SVGA_REG_CONFIG_DONE, false);
 
