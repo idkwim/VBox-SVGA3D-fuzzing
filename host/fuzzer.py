@@ -48,7 +48,7 @@ if __name__ == "__main__":
           f.write(cur_data)
 
         try:
-          conn.sendall(cur_data)
+          conn.sendall(generator.p32(len(cur_data))+cur_data)
 
           if config.DEBUG:
             print("Sending file done")

@@ -13,12 +13,12 @@
 
 SVGADevice gSVGA;
 
-void run_data(uint32_t* data);
+void run_data(uint32_t* data, uint32_t numbytes);
 
 int main(int argc, char **argv)
 {
   if (argc != 3) {
-    err(EXIT_FAILURE, "[*] Usage : ./worker <server port> <port>");
+    err(EXIT_FAILURE, "[*] Usage : ./worker <server addr> <port>");
   }
   
   // svga setup
@@ -54,20 +54,29 @@ int main(int argc, char **argv)
   while(1) {
     memset(buf, 0, MAX_DATA_SIZE);
     
-    // int numbytes = 0;
+    unsigned numbytes = 0; // data length
     int bytes_read = -1;
-    // while(numbytes < MAX_DATA_SIZE-1 && 
-    //   (bytes_read=recv(sockfd, buf+numbytes, MAX_DATA_SIZE-numbytes-1, 0)) != -1) {
-    //   numbytes += bytes_read;
-    // }
-    bytes_read=recv(sockfd, buf, MAX_DATA_SIZE-1, 0);
+    // recv data length
+    bytes_read=recv(sockfd, &numbytes, 4, 0);
     if(bytes_read == -1)
-      errx(EXIT_FAILURE, "[!] Recv data failed");
-    // warnx("[+] Received %d bytes", numbytes);
-    warnx("[+] Received %d bytes", bytes_read);
+      err(EXIT_FAILURE, "[!] Receiving data length failed");
+    if(bytes_read >= MAX_DATA_SIZE)
+      err(EXIT_FAILURE, "[!] Data too large");
+
+    warnx("[+] Receiving data: length - %u", numbytes);
+    unsigned idx = 0;
+    while(idx < numbytes) {
+      bytes_read=recv(sockfd, buf+idx, numbytes-idx, 0);
+      if(bytes_read == -1)
+        err(EXIT_FAILURE, "[!] Receiving data failed");
+      idx += bytes_read;
+      warnx("[+] Received %d bytes", idx);
+    }
+    if(idx != numbytes)
+      err(EXIT_FAILURE, "[!] Data length mismatch");
 
     warnx("[+] Running data");
-    run_data((uint32_t*)buf);
+    run_data((uint32_t*)buf, numbytes);
     warnx("[+] Running data complete");
 
     send(sockfd, "Running data complete", 21, 0);
@@ -75,9 +84,11 @@ int main(int argc, char **argv)
   return 0;
 }
 
-void run_data(uint32_t* data) {
+void run_data(uint32_t* data, uint32_t numbytes) {
+  assert(numbytes % 4 == 0);
+
   unsigned idx = 0;
-  while(idx < MAX_DATA_SIZE / 4) {
+  while(idx < numbytes / 4) {
     uint32_t cmdnr = data[idx++];
     uint32_t hdrsize = data[idx++];
     assert(hdrsize % 4 == 0);
