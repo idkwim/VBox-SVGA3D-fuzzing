@@ -2,10 +2,12 @@
 
 import sys
 import ctypes
+import config
 
+# Used to print generated object
 # https://stackoverflow.com/questions/26927685/introspecting-nested-ctypes-structures
 def print_ctypes_obj(obj, level=0):
-  delta_indent="  "
+  delta_indent=" "*config.INDENT_SPACE
   indent=delta_indent*level
 
   # Assess wether the object is an array, a structure or an elementary type
@@ -30,12 +32,3 @@ def print_ctypes_obj(obj, level=0):
 
   else:
     print('{}VALUE = {} (type={})'.format(indent, obj, type(obj)))
-
-
-# mini tests
-import svga3d_reg
-
-if __name__ == "__main__":
-  # simple test
-  print_ctypes_obj(svga3d_reg.SVGA3dCmdDefineSurface(1))
-  pass

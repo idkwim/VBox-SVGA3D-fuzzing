@@ -4,9 +4,9 @@ import socket
 import subprocess
 import random
 
-from generator import Generator
-
 import config
+import converter
+import generator
 
 if __name__ == "__main__":
   # start target program (VBox, VMware)
@@ -34,17 +34,14 @@ if __name__ == "__main__":
         
 
         cur_data = b""
-        with open("cur.pkts", "rb") as f:
-          cur_data = f.read()
+        # for i in config.PKT_SIZE:
+        #   cur_data += 
 
-        if config.DEBUG:
-          print("file length :", len(cur_data))
+        with open("cur.pkts", "wb") as f:
+          cur_data = f.write(cur_data)
 
         try:
-          if len(cur_data) % 1024 != 0:
-            conn.sendall(cur_data)
-          else:
-            conn.sendall(cur_data + b"over")
+          conn.sendall(cur_data)
 
           if config.DEBUG:
             print("Sending file done")
