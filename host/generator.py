@@ -82,10 +82,16 @@ def rand_ctypes_obj_rec(prefix, obj):
               rand2 = random.choice(list(enum_dict.keys()))
               res = choose_random(rand1, rand2)
             else:
-              maxbits = len(bin(max(enum_dict.keys()))) - 2 # -2 to remove "0b"
-              rand1 = random.getrandbits(fbitlen)
-              rand2 = random.getrandbits(maxbits)
-              res = choose_random(rand1, rand2)
+              if fname == "sid" or fname == "cid" or fname == "shid":
+                maxbits = len(bin(max(enum_dict.keys()))) - 2 # -2 to remove "0b"
+                rand1 = random.getrandbits(fbitlen)
+                rand2 = random.randint(100, 105) # TODO: improve this with dependency graph method
+                res = choose_random(rand1, rand2)
+              else:
+                maxbits = len(bin(max(enum_dict.keys()))) - 2 # -2 to remove "0b"
+                rand1 = random.getrandbits(fbitlen)
+                rand2 = random.getrandbits(maxbits)
+                res = choose_random(rand1, rand2)
           except: # enum type doesn't exist
             res = random_int(fbitlen)
         else:
@@ -107,7 +113,7 @@ def rand_ctypes_obj(cname):
     return None # fails
 
 def p32(d):
-  return bytes(ctypes.c_uint32(d))
+  return struct.pack("<I", d)
 
 def pack_obj_list(li):
   return b"".join([bytes(i) for i in li])

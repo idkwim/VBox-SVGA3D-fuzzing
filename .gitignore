@@ -3,3 +3,4 @@ worker/worker
 *.pyc
 *.pkts
 __pycache__
+host/crashes
