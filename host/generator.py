@@ -58,6 +58,7 @@ def rand_ctypes_obj_rec(prefix, obj):
       # Get the next field descriptor
       fname = fdesc[0]
       ftype = fdesc[1]
+      print(fdesc, ftype.__name__)
       varlist = inspect.getsource(obj.__class__).split("\n")[3:-2]
       if len(fdesc) == 3:
         fbitlen = fdesc[2]
@@ -65,7 +66,7 @@ def rand_ctypes_obj_rec(prefix, obj):
         fbitlen = 8*ctypes.sizeof(ftype)
       obj2 = getattr(obj, fname)
       res = rand_ctypes_obj_rec(prefix, obj2)
-      if res == None:
+      if res is None:
         # random
         if "float" in ftype.__name__:
           res = random_float()
@@ -73,27 +74,27 @@ def rand_ctypes_obj_rec(prefix, obj):
           res = random_double()
         elif "bool" in ftype.__name__:
           res = random_bool()
-        elif "c_int" == ftype.__name__: # enum types may exist
+        elif "c_int" == ftype.__name__ or "c_uint" == ftype.__name__: # enum types may exist
           try:
             enum_name = varlist[idx].split(", ")[1].replace("),", "")+"__enumvalues"
             enum_dict = eval(prefix+"."+enum_name)
+            print("LKSJDFLKJSD")
             if False in [bin(x).count("1") == 1 for x in enum_dict.keys()]:
               rand1 = random.getrandbits(fbitlen)
               rand2 = random.choice(list(enum_dict.keys()))
               res = choose_random(rand1, rand2)
             else:
-              if fname == "sid" or fname == "cid" or fname == "shid":
-                maxbits = len(bin(max(enum_dict.keys()))) - 2 # -2 to remove "0b"
-                rand1 = random.getrandbits(fbitlen)
-                rand2 = random.randint(100, 105) # TODO: improve this with dependency graph method
-                res = choose_random(rand1, rand2)
-              else:
-                maxbits = len(bin(max(enum_dict.keys()))) - 2 # -2 to remove "0b"
-                rand1 = random.getrandbits(fbitlen)
-                rand2 = random.getrandbits(maxbits)
-                res = choose_random(rand1, rand2)
+              maxbits = len(bin(max(enum_dict.keys()))) - 2 # -2 to remove "0b"
+              rand1 = random.getrandbits(fbitlen)
+              rand2 = random.getrandbits(maxbits)
+              res = choose_random(rand1, rand2)
           except: # enum type doesn't exist
-            res = random_int(fbitlen)
+            if fname == "sid" or fname == "cid" or fname == "shid":
+              rand1 = random.getrandbits(fbitlen)
+              rand2 = random.randint(100, 105) # TODO: improve this with dependency graph method
+              res = choose_random(rand1, rand2)
+            else:
+              res = random_int(fbitlen)
         else:
           res = random_int(fbitlen)
       args.append(res)
