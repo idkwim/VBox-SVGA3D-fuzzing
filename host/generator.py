@@ -14,12 +14,12 @@ def choose_random(rand1, rand2):
   return random.choices([rand1, rand2], weights=(config.BOUNDARY_PROB, 100-config.BOUNDARY_PROB))[0]
 
 def random_float():
-  rand1 = random.choice([float('inf'), float('-inf'), 0.0])
+  rand1 = random.choice([float('inf'), float('-inf'), float('nan'), 0.0])
   rand2 = struct.unpack('!f', struct.pack('!I', random.getrandbits(32)))[0]
   return choose_random(rand1, rand2)
 
 def random_double():
-  rand1 = random.choice([float('inf'), float('-inf'), 0.0])
+  rand1 = random.choice([float('inf'), float('-inf'), float('nan'), 0.0])
   rand2 = struct.unpack('!d', struct.pack('!I', random.getrandbits(64)))[0]
   return choose_random(rand1, rand2)
 
@@ -27,7 +27,7 @@ def random_bool():
   return random.choice([True, False])
 
 def random_int(numbits):
-  rand1 = random.choice([0, (1 << numbits) - 1])
+  rand1 = random.choice([0, (1 << (numbits-1)) - 1, (1 << (numbits-1)), (1 << numbits) - 1])
   rand2 = random.getrandbits(numbits)
   return choose_random(rand1, rand2)
 
@@ -293,5 +293,5 @@ def gen_cmd(testcmd=0):
     return pack_cmd(cmd, b"")
   elif cmd == 1081: # SVGA_3D_CMD_DEACTIVATE_SURFACE
     return pack_cmd(cmd, b"")
-  
-  return b""
+  else:
+    return pack_cmd(cmd, b"")

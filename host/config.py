@@ -7,8 +7,8 @@ FUZZ_PORT = 31337
 MAX_FILE_SIZE = 0x20000
 
 # gen info
-PKT_SIZE = 100 # packet size
-BOUNDARY_PROB = 95 # boundary value probability (max=100)
+PKT_SIZE = 200 # packet size
+BOUNDARY_PROB = 30 # boundary value probability (max=100)
 ALLOW_OOB_IDS = False # allow out of bounds ids (sid, cid, shid)
 ALLOW_OOB_ENUMS = False # allow out of bounds enums
 ALLOW_OOB_CMDS = False # allow out of bounds commands
