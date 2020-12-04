@@ -33,16 +33,17 @@ if __name__ == "__main__":
         if config.DEBUG:
           print("Generating file...")
         
-        cur_data = b""
         data_len = 0
         # don't allow files larger than max file size (including null byte)
         while data_len >= config.MAX_FILE_SIZE or data_len == 0:
+          cur_data = b""
           for i in range(config.PKT_SIZE):
             cur_data += generator.gen_cmd()
           data_len = len(cur_data)
         
         if config.DEBUG:
-          print("Generation complete - file length : " + str(data_len))
+          print("Generation complete - file length :", data_len)
+
 
         with open("cur.pkts", "wb") as f:
           f.write(cur_data)

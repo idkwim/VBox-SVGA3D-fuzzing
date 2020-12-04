@@ -41,10 +41,11 @@ if __name__ == "__main__":
           print_data = cur_data
           idx = 0
           while len(print_data) > 0:
-            print("PRINTING CMD ", idx)
+            print("PRINTING CMD", idx)
             print_data = printer.print_cmd(print_data)
             idx += 1
-          print("Data read - file length : " + str(data_len))
+          print("Command count :", idx)
+          print("Data read - file length :", data_len)
 
         with open("cur.pkts", "wb") as f:
           f.write(cur_data)

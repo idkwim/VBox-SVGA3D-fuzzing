@@ -204,3 +204,20 @@ def print_cmd(raw):
   else:
     print("INVALID COMMAND")
   return raw[hdrsize+8:]
+
+if __name__ == "__main__":
+  import sys
+
+  if len(sys.argv) != 2:
+    print("[*] Usage : python3 printer.py <filename>")
+
+  with open(sys.argv[1], "rb") as f:
+    raw = f.read()
+  
+  cnt = 0
+  while len(raw) > 0:
+    print("PRINTING CMD", cnt)
+    raw = print_cmd(raw)
+    cnt += 1
+  print("PRINTED", cnt, "Commands")
+    
