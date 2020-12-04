@@ -62,7 +62,7 @@ def u32(p):
 def print_cmd(raw):
   cmd = u32(raw[0:4])
   hdrsize = u32(raw[4:8])
-  pay = raw[8:]
+  pay = raw[8:hdrsize+8]
   assert hdrsize % 4 == 0
 
   delta_indent = " "*config.INDENT_SPACE
@@ -203,3 +203,4 @@ def print_cmd(raw):
     print("SVGA_3D_CMD_DEACTIVATE_SURFACE")
   else:
     print("INVALID COMMAND")
+  return raw[hdrsize+8:]
