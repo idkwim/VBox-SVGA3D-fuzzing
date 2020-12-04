@@ -8,7 +8,11 @@ MAX_FILE_SIZE = 0x20000
 
 # gen info
 PKT_SIZE = 100 # packet size
-BOUNDARY_PROB = 5 # boundary value probability (max=100)
+BOUNDARY_PROB = 95 # boundary value probability (max=100)
+ALLOW_OOB_IDS = False # allow out of bounds ids (sid, cid, shid)
+ALLOW_OOB_ENUMS = False # allow out of bounds enums
+ALLOW_OOB_CMDS = False # allow out of bounds commands
+
 MAX_N_DEFINE_3D = 7 # max number of dsizes in 3d define surface command
 MAX_N_COPY_3D = 10 # max number of copyboxes in 3d surface copy command
 MAX_N_DMA_3D = 10 # max number of copyboxes in 3d surface DMA command

@@ -58,7 +58,6 @@ def rand_ctypes_obj_rec(prefix, obj):
       # Get the next field descriptor
       fname = fdesc[0]
       ftype = fdesc[1]
-      print(fdesc, ftype.__name__)
       varlist = inspect.getsource(obj.__class__).split("\n")[3:-2]
       if len(fdesc) == 3:
         fbitlen = fdesc[2]
@@ -78,21 +77,26 @@ def rand_ctypes_obj_rec(prefix, obj):
           try:
             enum_name = varlist[idx].split(", ")[1].replace("),", "")+"__enumvalues"
             enum_dict = eval(prefix+"."+enum_name)
-            print("LKSJDFLKJSD")
             if False in [bin(x).count("1") == 1 for x in enum_dict.keys()]:
-              rand1 = random.getrandbits(fbitlen)
+              rand1 = random_int(fbitlen)
               rand2 = random.choice(list(enum_dict.keys()))
-              res = choose_random(rand1, rand2)
+              if config.ALLOW_OOB_ENUMS:
+                res = choose_random(rand1, rand2)
+              else:
+                res = rand2
             else:
               maxbits = len(bin(max(enum_dict.keys()))) - 2 # -2 to remove "0b"
-              rand1 = random.getrandbits(fbitlen)
-              rand2 = random.getrandbits(maxbits)
+              rand1 = random_int(fbitlen)
+              rand2 = random_int(maxbits)
               res = choose_random(rand1, rand2)
           except: # enum type doesn't exist
             if fname == "sid" or fname == "cid" or fname == "shid":
-              rand1 = random.getrandbits(fbitlen)
+              rand1 = random_int(fbitlen)
               rand2 = random.randint(100, 105) # TODO: improve this with dependency graph method
-              res = choose_random(rand1, rand2)
+              if config.ALLOW_OOB_IDS:
+                res = choose_random(rand1, rand2)
+              else:
+                res = rand2
             else:
               res = random_int(fbitlen)
         else:
@@ -127,8 +131,14 @@ def pack_cmd(cmd, pay):
 def gen_cmd(testcmd=0):
   # random command id
   rand1 = random_int(32)
-  rand2 = random.randint(1040, 1040+41) # commands are defined in this range (3D)
-  cmd = choose_random(rand1, rand2) if testcmd == 0 else testcmd
+  rand2 = random.choice(list(range(1040, 1040+32))+[1080, 1081]) # commands are defined in this range (3D)
+  if testcmd == 0:
+    if config.ALLOW_OOB_CMDS:
+      cmd = choose_random(rand1, rand2)
+    else:
+      cmd = rand2
+  else:
+    cmd = testcmd
 
   # switch
   if cmd == 1040: # SVGA_3D_CMD_SURFACE_DEFINE
@@ -279,9 +289,9 @@ def gen_cmd(testcmd=0):
     pCmd = rand_ctypes_obj("SVGA3dCmdGenerateMipmaps")
     pay = bytes(pCmd)
     return pack_cmd(cmd, pay)
-  elif cmd == 1072: # SVGA_3D_CMD_ACTIVATE_SURFACE
+  elif cmd == 1080: # SVGA_3D_CMD_ACTIVATE_SURFACE
     return pack_cmd(cmd, b"")
-  elif cmd == 1073: # SVGA_3D_CMD_DEACTIVATE_SURFACE
+  elif cmd == 1081: # SVGA_3D_CMD_DEACTIVATE_SURFACE
     return pack_cmd(cmd, b"")
   
   return b""
