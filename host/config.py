@@ -1,14 +1,12 @@
 #!/usr/bin/python3
 
 # network info
-GUEST_IP = "10.0.2.15"
-HOST_IP = "10.0.2.2"
 FUZZ_PORT = 31337
 MAX_FILE_SIZE = 0x20000
 
 # gen info
-PKT_SIZE = 200 # packet size
-BOUNDARY_PROB = 30 # boundary value probability (max=100)
+PKT_SIZE = 100 # packet size
+BOUNDARY_PROB = 15 # boundary value probability (max=100)
 ALLOW_OOB_IDS = False # allow out of bounds ids (sid, cid, shid)
 ALLOW_OOB_ENUMS = False # allow out of bounds enums
 ALLOW_OOB_CMDS = False # allow out of bounds commands

